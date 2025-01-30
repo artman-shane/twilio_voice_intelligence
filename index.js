@@ -24,7 +24,7 @@ async function createTranscript(media_url, _participants) {
       },
       participants: _participants,
     },
-    serviceSid: "GAded62e5db79efa73ba140793d6c08009",
+    serviceSid: process.env.VOICE_INTELLIGENCE_SID,
   });
 
   console.log(`Transcript created with SID: ${transcript.sid}`);
@@ -117,6 +117,38 @@ app.listen(expressPort, () => {
   console.log(`Server running at http://localhost:${expressPort}`);
 });
 // Endpoint to handle deletion of transcript and file
+// app.post("/delete", express.json(), async (req, res) => {
+//   const { transcriptSid, fileName } = req.body;
+//   console.log(
+//     `Received request to delete transcript and file: `,
+//     transcriptSid,
+//     fileName
+//   );
+
+//   if (!transcriptSid || !fileName) {
+//     console.log(`Transcript SID and file name are required.`);
+//     return res.status(400).send("Transcript SID and file name are required.");
+//   }
+
+//   try {
+//     // Delete the transcript
+//     await client.intelligence.v2.transcripts(transcriptSid).remove();
+//     console.log(`Transcript with SID: ${transcriptSid} deleted.`);
+
+//     // Delete the file from the local filesystem
+//     const filePath = path.join(__dirname, "uploads", fileName);
+//     const unlinkFile = util.promisify(fs.unlink);
+//     await unlinkFile(filePath);
+//     console.log(`File: ${filePath} deleted.`);
+
+//     res.send("Transcript and file deleted successfully.");
+//   } catch (error) {
+//     console.error("Error deleting transcript or file:", error);
+//     res.status(500).send("Error deleting transcript or file.");
+//   }
+// });
+
+// Endpoint to handle deletion of transcript and file
 app.post("/delete", express.json(), async (req, res) => {
   const { transcriptSid, fileName } = req.body;
   console.log(
@@ -125,9 +157,9 @@ app.post("/delete", express.json(), async (req, res) => {
     fileName
   );
 
-  if (!transcriptSid || !fileName) {
-    console.log(`Transcript SID and file name are required.`);
-    return res.status(400).send("Transcript SID and file name are required.");
+  if (!transcriptSid) {
+    console.log(`Transcript SID is required.`);
+    return res.status(400).send("Transcript SID is required.");
   }
 
   try {
@@ -135,18 +167,26 @@ app.post("/delete", express.json(), async (req, res) => {
     await client.intelligence.v2.transcripts(transcriptSid).remove();
     console.log(`Transcript with SID: ${transcriptSid} deleted.`);
 
-    // Delete the file from the local filesystem
-    const filePath = path.join(__dirname, "uploads", fileName);
-    const unlinkFile = util.promisify(fs.unlink);
-    await unlinkFile(filePath);
-    console.log(`File: ${filePath} deleted.`);
-
-    res.send("Transcript and file deleted successfully.");
+    if (fileName) {
+      // Delete the file from the local filesystem
+      const filePath = path.join(__dirname, 'uploads', fileName);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Error deleting file: ${fileName}`, err);
+          return res.status(500).send(`Error deleting file: ${fileName}`);
+        }
+        console.log(`File ${fileName} deleted.`);
+        res.send(`Transcript and file deleted successfully.`);
+      });
+    } else {
+      res.send(`Transcript deleted successfully. No file to delete.`);
+    }
   } catch (error) {
-    console.error("Error deleting transcript or file:", error);
-    res.status(500).send("Error deleting transcript or file.");
+    console.error(`Error deleting transcript: ${transcriptSid}`, error);
+    res.status(500).send(`Error deleting transcript: ${transcriptSid}`);
   }
 });
+
 app.get("/uploads/:filename", (req, res) => {
   const filePath = path.join(
     __dirname,
@@ -157,94 +197,220 @@ app.get("/uploads/:filename", (req, res) => {
 });
 
 // Serve the upload form at the root URL
-app.get("/", (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Upload Audio File</title>
-    </head>
-    <body>
-      <h1>Upload Audio File for Transcription</h1>
-      <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".mp3,.flac,.wav" required>
-        <button type="submit">Upload</button>
-      </form>
-    <script>
-      document.querySelector('input[type="file"]').addEventListener('click', (event) => {
-        const fileName = event.target.files[0]?.name || 'No file chosen';
-        const messageDiv = document.getElementById('message');
-        messageDiv.textContent = \`Selected file: $\{fileName\}\`;
-        messageDiv.style.color = 'blue';
-      });
-      document.querySelector('input[type="file"]').addEventListener('change', (event) => {
-        const fileName = event.target.files[0]?.name || 'No file chosen';
-        const messageDiv = document.getElementById('message');
-        messageDiv.textContent = \`Selected file: $\{fileName\}\`;
-        messageDiv.style.color = 'blue';
-      });
-    </script>
-    <div id="message"></div>
-    <script>
-      document.querySelector('form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        console.log('Uploading file:', formData.get('file').name);
-        const response = await fetch('/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        console.log(response);
+// app.get("/", (req, res) => {
+//   res.send(`
+//     <!DOCTYPE html>
+//     <html lang="en">
+//     <head>
+//       <meta charset="UTF-8">
+//       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//       <title>Upload Audio File</title>
+//     </head>
+//     <body>
+//       <h1>Upload Audio File for Transcription</h1>
+//       <form action="/upload" method="post" enctype="multipart/form-data">
+//         <input type="file" name="file" accept=".mp3,.flac,.wav" required>
+//         <button type="submit">Upload</button>
+//       </form>
+//     <script>
+//       document.querySelector('input[type="file"]').addEventListener('click', (event) => {
+//         const fileName = event.target.files[0]?.name || 'No file chosen';
+//         const messageDiv = document.getElementById('message');
+//         messageDiv.textContent = \`Selected file: $\{fileName\}\`;
+//         messageDiv.style.color = 'blue';
+//       });
+//       document.querySelector('input[type="file"]').addEventListener('change', (event) => {
+//         const fileName = event.target.files[0]?.name || 'No file chosen';
+//         const messageDiv = document.getElementById('message');
+//         messageDiv.textContent = \`Selected file: $\{fileName\}\`;
+//         messageDiv.style.color = 'blue';
+//       });
+//     </script>
+//     <div id="message"></div>
+//     <script>
+//       document.querySelector('form').addEventListener('submit', async (event) => {
+//         event.preventDefault();
+//         const formData = new FormData(event.target);
+//         console.log('Uploading file:', formData.get('file').name);
+//         const response = await fetch('/upload', {
+//           method: 'POST',
+//           body: formData,
+//         });
+//         console.log(response);
 
-        const messageDiv = document.getElementById('message');
-        messageDiv.textContent = 'Uploading file...';
-        if (response.status === 200) {
-          const data = await response.json();
-          console.log('Response.Data: ',data);
-          const message = "data.message: " + data.message + "transcriptSid: " + data.transcriptSid;
-          const transcriptSid = data.transcriptSid;
+//         const messageDiv = document.getElementById('message');
+//         messageDiv.textContent = 'Uploading file...';
+//         if (response.status === 200) {
+//           const data = await response.json();
+//           console.log('Response.Data: ',data);
+//           const message = "data.message: " + data.message + "transcriptSid: " + data.transcriptSid;
+//           const transcriptSid = data.transcriptSid;
+//           const fileList = document.getElementById('fileList');
+//           const listItem = document.createElement('li');
+          
+//           messageDiv.textContent = "Success - transcriptSid: " + transcriptSid;
+//           messageDiv.style.color = 'green';
+          
+//           const deleteButton = document.createElement('button');
+//           deleteButton.textContent = 'X';
+//           deleteButton.style.marginLeft = '10px';
+
+//           listItem.textContent = formData.get("file").name + ' - SID: ' + transcriptSid;
+//           listItem.appendChild(deleteButton);
+//           fileList.appendChild(listItem);
+
+//           deleteButton.addEventListener('click', async () => {
+//             const deleteResponse = await fetch('/delete', {
+//               method: 'POST',
+//               headers: {
+//                 'Content-Type': 'application/json',
+//               },
+//               body: JSON.stringify({ transcriptSid, fileName: formData.get('file').name }),
+//             });
+
+//             if (deleteResponse.ok) {
+//               fileList.removeChild(listItem);
+//             } else {
+//               const errorText = await deleteResponse.text();
+//               alert('Error deleting file: ' + errorText);
+//             }
+//           });
+//         } else {
+//           const errorText = await response.text();
+//           messageDiv.textContent = 'Error: ' + errorText;
+//           messageDiv.style.color = 'red';
+//         }
+//       });
+//     </script>
+//     <h2>Uploaded Files</h2>
+//     <ul style="list-style-type: none;" id="fileList"></ul>
+//     </body>
+//     </html>
+//   `);
+// });
+app.get("/", async (req, res) => {
+  try {
+    const transcripts = await client.intelligence.v2.transcripts.list();
+    const transcriptList = transcripts.map(transcript => ({
+      sid: transcript.sid,
+      mediaUrl: transcript.media_url
+    }));
+
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Upload Audio File</title>
+      </head>
+      <body>
+        <h1>Upload Audio File for Transcription</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+          <input type="file" name="file" accept=".mp3,.flac,.wav" required>
+          <button type="submit">Upload</button>
+        </form>
+        <div id="message"></div>
+        <h2>Uploaded Files</h2>
+        <ul style="list-style-type: none;" id="fileList"></ul>
+        <script>
+          const transcripts = ${JSON.stringify(transcriptList)};
           const fileList = document.getElementById('fileList');
-          const listItem = document.createElement('li');
-          
-          messageDiv.textContent = "Success - transcriptSid: " + transcriptSid;
-          messageDiv.style.color = 'green';
-          
-          const deleteButton = document.createElement('button');
-          deleteButton.textContent = 'X';
-          deleteButton.style.marginLeft = '10px';
 
-          listItem.textContent = formData.get("file").name + ' - SID: ' + transcriptSid;
-          listItem.appendChild(deleteButton);
-          fileList.appendChild(listItem);
+          transcripts.forEach(transcript => {
+            const listItem = document.createElement('li');
+            listItem.textContent = 'SID: ' + transcript.sid;
 
-          deleteButton.addEventListener('click', async () => {
-            const deleteResponse = await fetch('/delete', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ transcriptSid, fileName: formData.get('file').name }),
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'X';
+            deleteButton.style.marginLeft = '10px';
+            deleteButton.addEventListener('click', async () => {
+              const response = await fetch('/delete', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ transcriptSid: transcript.sid, fileName: null }),
+              });
+
+              if (response.ok) {
+                fileList.removeChild(listItem);
+              } else {
+                const errorText = await response.text();
+                alert('Error deleting transcript: ' + errorText);
+              }
             });
 
-            if (deleteResponse.ok) {
-              fileList.removeChild(listItem);
+            listItem.appendChild(deleteButton);
+            fileList.appendChild(listItem);
+          });
+
+          document.querySelector('input[type="file"]').addEventListener('click', (event) => {
+            const fileName = event.target.files[0]?.name || 'No file chosen';
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = \`Selected file: $\{fileName\}\`;
+            messageDiv.style.color = 'blue';
+          });
+
+          document.querySelector('input[type="file"]').addEventListener('change', (event) => {
+            const fileName = event.target.files[0]?.name || 'No file chosen';
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = \`Selected file: $\{fileName\}\`;
+            messageDiv.style.color = 'blue';
+          });
+
+          document.querySelector('form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = 'Uploading file...';
+
+            const response = await fetch('/upload', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (response.status === 200) {
+              const data = await response.json();
+              messageDiv.textContent = 'Success - transcriptSid: ' + data.transcriptSid;
+              messageDiv.style.color = 'green';
+
+              const listItem = document.createElement('li');
+              listItem.textContent = formData.get('file').name + ' - SID: ' + data.transcriptSid;
+
+              const deleteButton = document.createElement('button');
+              deleteButton.textContent = 'X';
+              deleteButton.style.marginLeft = '10px';
+              deleteButton.addEventListener('click', async () => {
+                const response = await fetch('/delete', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ transcriptSid: data.transcriptSid, fileName: formData.get('file').name }),
+                });
+
+                if (response.ok) {
+                  fileList.removeChild(listItem);
+                } else {
+                  const errorText = await response.text();
+                  alert('Error deleting transcript: ' + errorText);
+                }
+              });
+
+              listItem.appendChild(deleteButton);
+              fileList.appendChild(listItem);
             } else {
-              const errorText = await deleteResponse.text();
-              alert('Error deleting file: ' + errorText);
+              const errorText = await response.text();
+              messageDiv.textContent = 'Error: ' + errorText;
+              messageDiv.style.color = 'red';
             }
           });
-        } else {
-          const errorText = await response.text();
-          messageDiv.textContent = 'Error: ' + errorText;
-          messageDiv.style.color = 'red';
-        }
-      });
-    </script>
-    <h2>Uploaded Files</h2>
-    <ul style="list-style-type: none;" id="fileList"></ul>
-    </body>
-    </html>
-  `);
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 });

@@ -18,7 +18,7 @@ This application allows users to upload audio files to Twilio Voice Intelligence
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/VoiceIntelligenceTranscription.git
+    git clone https://github.com/artman-shane/twilio_voice_intelligence.git
     ```
 2. Navigate to the project directory:
     ```bash
