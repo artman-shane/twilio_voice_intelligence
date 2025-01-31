@@ -1,3 +1,5 @@
 .env
 node_modules/
 *.log
+voice-intelligence-transcription/config.json
+voice-intelligence-transcription/config.json
