@@ -1,6 +1,6 @@
 import { getTwilioClient } from "../../../utils/twilioClient";
-import { promises as fs } from 'fs';
-import path from 'path';
+import { promises as fs } from "fs";
+import path from "path";
 
 export async function GET() {
   try {
@@ -20,15 +20,16 @@ export async function GET() {
       { status: 200 }
     );
   } catch (error) {
+    console.log("Error fetching transcripts:", error);
     return new Response(error.message, { status: 500 });
   }
 }
 
-const configPath = path.join(process.cwd(), 'config.json');
+const configPath = path.join(process.cwd(), "config.json");
 
 export async function createTranscript(media_url, _participants) {
   const client = await getTwilioClient();
-  const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+  const config = JSON.parse(await fs.readFile(configPath, "utf-8"));
   const transcript = await client.intelligence.v2.transcripts.create({
     channel: {
       media_properties: {
