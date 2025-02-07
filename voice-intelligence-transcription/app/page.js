@@ -16,7 +16,6 @@ export default function Home() {
   const [loadingText, setLoadingText] = useState('Loading.');
   const [isLoading, setIsLoading] = useState(true);
   const [services, setServices] = useState([]);
-  const [operatorResults, setOperatorResults] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const router = useRouter();
@@ -112,20 +111,10 @@ export default function Home() {
     }
   };
 
-  const handleOperatorResults = async () => {
+  const handleOperatorResults = () => {
     if (!selectedFile) return;
-    try {
-      const response = await fetch(`/api/operator-results/${selectedFile.sid}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch operator results');
-      }
-      const data = await response.json();
-      setOperatorResults(data);
-      console.log('Operator results:', data); // Debugging
-      handleMenuClose();
-    } catch (error) {
-      console.error('Error fetching operator results:', error);
-    }
+    router.push(`/operator_results?transcriptSid=${selectedFile.sid}`);
+    handleMenuClose();
   };
 
   return (
@@ -190,14 +179,6 @@ export default function Home() {
             </TableBody>
           </Table>
         </TableContainer>
-      )}
-      {operatorResults && (
-        <Box mt={4}>
-          <Typography variant="h5" component="h2" gutterBottom>
-            Operator Results
-          </Typography>
-          <pre className="bg-gray-100 p-4 rounded">{JSON.stringify(operatorResults, null, 2)}</pre>
-        </Box>
       )}
     </Container>
   );
