@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Button, Typography, Container, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Menu, MenuItem } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const formatDuration = (seconds) => {
   const minutes = Math.floor(seconds / 60);
@@ -11,13 +12,49 @@ const formatDuration = (seconds) => {
 };
 
 export default function Home() {
-  const [message, setMessage] = useState('');
   const [fileList, setFileList] = useState([]);
   const [loadingText, setLoadingText] = useState('Loading.');
   const [isLoading, setIsLoading] = useState(true);
   const [services, setServices] = useState([]);
   const [operatorResults, setOperatorResults] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const router = useRouter();
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('/api/services');
+      if (!response.ok) {
+        throw new Error('Failed to fetch services');
+      }
+      const services = await response.json();
+      setServices(services);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    }
+  };
+
+  const fetchTranscripts = async () => {
+    try {
+      const response = await fetch('/api/transcripts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch transcripts');
+      }
+      const data = await response.json();
+      const transcriptsWithServiceNames = data.map(transcript => {
+        const service = services.find(service => service.sid === transcript.serviceSid);
+        return {
+          ...transcript,
+          serviceFriendlyName: service ? service.friendlyName : transcript.serviceSid,
+        };
+      });
+      console.log('Transcripts with service names:', transcriptsWithServiceNames); // Debugging
+      setFileList(transcriptsWithServiceNames);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching transcripts:', error);
+    }
+  };
 
   useEffect(() => {
     const checkCredentials = async () => {
@@ -28,41 +65,6 @@ export default function Home() {
       } else {
         await fetchServices();
         await fetchTranscripts();
-      }
-    };
-
-    const fetchServices = async () => {
-      try {
-        const response = await fetch('/api/services');
-        if (!response.ok) {
-          throw new Error('Failed to fetch services');
-        }
-        const services = await response.json();
-        setServices(services);
-      } catch (error) {
-        console.error('Error fetching services:', error);
-      }
-    };
-
-    const fetchTranscripts = async () => {
-      try {
-        const response = await fetch('/api/transcripts');
-        if (!response.ok) {
-          throw new Error('Failed to fetch transcripts');
-        }
-        const data = await response.json();
-        const transcriptsWithServiceNames = data.map(transcript => {
-          const service = services.find(service => service.sid === transcript.serviceSid);
-          return {
-            ...transcript,
-            serviceFriendlyName: service ? service.friendlyName : transcript.serviceSid,
-          };
-        });
-        console.log('Transcripts with service names:', transcriptsWithServiceNames); // Debugging
-        setFileList(transcriptsWithServiceNames);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching transcripts:', error);
       }
     };
 
@@ -81,117 +83,122 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleFileChange = (event) => {
-    const fileName = event.target.files[0]?.name || 'No file chosen';
-    setMessage(`Selected file: ${fileName}`);
+  const handleMenuOpen = (event, file) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedFile(file);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    setMessage('Uploading file...');
-
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (response.status === 200) {
-      const data = await response.json();
-      setMessage(`Success - transcriptSid: ${data.transcriptSid}`);
-      setFileList([...fileList, { name: formData.get('file').name, transcriptSid: data.transcriptSid, dateCreated: new Date().toISOString(), duration: 'Unknown' }]);
-    } else {
-      const errorText = await response.text();
-      setMessage(`Error: ${errorText}`);
-    }
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedFile(null);
   };
 
-  const handleDelete = async (transcriptSid, fileName) => {
+  const handleDelete = async () => {
+    if (!selectedFile) return;
     const response = await fetch('/api/delete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ transcriptSid, fileName }),
+      body: JSON.stringify({ transcriptSid: selectedFile.sid, fileName: selectedFile.name }),
     });
 
     if (response.ok) {
-      setFileList(fileList.filter(file => file.transcriptSid !== transcriptSid));
+      await fetchTranscripts(); // Refresh the list of transcripts
+      handleMenuClose();
     } else {
       const errorText = await response.text();
       alert(`Error deleting transcript: ${errorText}`);
     }
   };
 
-  const handleOperatorResults = async (transcriptSid) => {
+  const handleOperatorResults = async () => {
+    if (!selectedFile) return;
     try {
-      const response = await fetch(`/api/operator-results/${transcriptSid}`);
+      const response = await fetch(`/api/operator-results/${selectedFile.sid}`);
       if (!response.ok) {
         throw new Error('Failed to fetch operator results');
       }
       const data = await response.json();
       setOperatorResults(data);
       console.log('Operator results:', data); // Debugging
+      handleMenuClose();
     } catch (error) {
       console.error('Error fetching operator results:', error);
     }
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <nav className="mb-4">
-        <Link href="/config" className="text-blue-500 hover:underline">Configuration</Link>
-      </nav>
-      <h1 className="text-2xl font-bold mb-4">Upload Audio File for Transcription</h1>
-      <form onSubmit={handleSubmit} encType="multipart/form-data" className="mb-4">
-        <input type="file" name="file" accept=".mp3,.flac,.wav" required onChange={handleFileChange} className="mb-2" />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Upload</button>
-      </form>
-      <div id="message" className="mb-4">{message}</div>
-      <h2 className="text-xl font-bold mb-2">Uploaded Files</h2>
+    <Container maxWidth="md">
+      <Typography variant="h4" component="h1" gutterBottom>
+        Uploaded Files
+      </Typography>
+      <Box mb={2}>
+        <Button variant="contained" color="primary" onClick={() => router.push('/upload_media')}>
+          Upload
+        </Button>
+      </Box>
       {isLoading ? (
-        <div className="text-center text-2xl font-bold text-gray-500">
-          Loading<span className="inline-block w-4">{loadingText.slice(7)}</span>
-        </div>
+        <Typography variant="h6" color="textSecondary">
+          Loading<span>{loadingText.slice(7)}</span>
+        </Typography>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
-            <thead>
-              <tr>
-                <th className="py-2 px-4 border-b">File Name</th>
-                <th className="py-2 px-4 border-b">SID</th>
-                <th className="py-2 px-4 border-b">Service</th>
-                <th className="py-2 px-4 border-b">Created</th>
-                <th className="py-2 px-4 border-b">Updated</th>
-                <th className="py-2 px-4 border-b">Duration (mm:ss)</th>
-                <th className="py-2 px-4 border-b">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>File Name</TableCell>
+                <TableCell>SID</TableCell>
+                <TableCell>Service</TableCell>
+                <TableCell>Created</TableCell>
+                <TableCell>Updated</TableCell>
+                <TableCell>Duration (mm:ss)</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {fileList.map(file => (
-                <tr key={file.sid}>
-                  <td className="py-2 px-4 border-b">{file.name || 'None'}</td>
-                  <td className="py-2 px-4 border-b">{file.sid}</td>
-                  <td className="py-2 px-4 border-b">{file.serviceFriendlyName}</td>
-                  <td className="py-2 px-4 border-b">{new Date(Date.parse(file.dateCreated)).toLocaleString()}</td>
-                  <td className="py-2 px-4 border-b">{new Date(Date.parse(file.dateUpdated)).toLocaleString()}</td>
-                  <td className="py-2 px-4 border-b">{formatDuration(file.duration)}</td>
-                  <td className="py-2 px-4 border-b">
-                    <button onClick={() => handleDelete(file.sid, file.name)} className="bg-red-500 text-white mx-2 px-2 py-1 rounded">X</button>
-                    <button onClick={() => handleOperatorResults(file.sid)} className="bg-blue-500 text-white mx-2 px-2 py-1 rounded">Operator Results</button>
-                  </td>
-                </tr>
+                <TableRow key={file.sid}>
+                  <TableCell>{file.name || 'None'}</TableCell>
+                  <TableCell>{file.sid}</TableCell>
+                  <TableCell>{file.serviceFriendlyName}</TableCell>
+                  <TableCell>{new Date(Date.parse(file.dateCreated)).toLocaleString()}</TableCell>
+                  <TableCell>{new Date(Date.parse(file.dateUpdated)).toLocaleString()}</TableCell>
+                  <TableCell>{formatDuration(file.duration)}</TableCell>
+                  <TableCell>
+                    <IconButton
+                      aria-label="more"
+                      aria-controls="long-menu"
+                      aria-haspopup="true"
+                      onClick={(event) => handleMenuOpen(event, file)}
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
+                    <Menu
+                      id="long-menu"
+                      anchorEl={anchorEl}
+                      keepMounted
+                      open={Boolean(anchorEl)}
+                      onClose={handleMenuClose}
+                    >
+                      <MenuItem onClick={handleDelete}>Delete</MenuItem>
+                      <MenuItem onClick={handleOperatorResults}>Operator Results</MenuItem>
+                    </Menu>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
       {operatorResults && (
-        <div className="mt-4">
-          <h2 className="text-xl font-bold mb-2">Operator Results</h2>
+        <Box mt={4}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Operator Results
+          </Typography>
           <pre className="bg-gray-100 p-4 rounded">{JSON.stringify(operatorResults, null, 2)}</pre>
-        </div>
+        </Box>
       )}
-    </div>
+    </Container>
   );
 }

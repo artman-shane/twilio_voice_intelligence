@@ -1,9 +1,12 @@
-import '../styles/globals.css';
+import './styles/globals.css';
+import Layout from './components/Layout';
 
-export default function RootLayout({ children }) {
+function MyApp({ Component, pageProps }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
+    <Layout>
+      <Component {...pageProps} />
+    </Layout>
   );
 }
+
+export default MyApp;

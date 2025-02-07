@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import formidable from 'formidable';
+import { NextResponse } from 'next/server';
 import { getTwilioClient } from '../../../utils/twilioClient';
 
 export const config = {
@@ -10,35 +10,32 @@ export const config = {
 };
 
 export async function POST(req) {
-  const form = new formidable.IncomingForm();
-  form.uploadDir = path.join(process.cwd(), 'public/uploads');
-  form.keepExtensions = true;
+  try {
+    const formData = await req.formData();
+    const file = formData.get('file');
+    const filePath = path.join(process.cwd(), 'public/uploads', file.name);
 
-  return new Promise((resolve, reject) => {
-    form.parse(req, async (err, fields, files) => {
-      if (err) {
-        reject(new Response('Error parsing form', { status: 500 }));
-        return;
-      }
+    // Save the file to the uploads directory
+    await fs.writeFile(filePath, Buffer.from(await file.arrayBuffer()));
 
-      const file = files.file;
-      const filePath = file.path;
-      const mediaUrl = `http://localhost:3000/uploads/${path.basename(filePath)}`;
+    // Use the Twilio client to upload the file and get the transcript SID
+    const client = getTwilioClient();
+    const mediaUrl = `http://shane.ngrok.io/uploads/${file.name}`;
+    const participants = []; // Add participants if needed
 
-      try {
-        const client = await getTwilioClient();
-        const transcript = await client.intelligence.v2.transcripts.create({
-          channel: {
-            media_properties: {
-              media_url: mediaUrl,
-            },
-          },
-        });
-
-        resolve(new Response(JSON.stringify({ transcriptSid: transcript.sid }), { status: 200 }));
-      } catch (error) {
-        reject(new Response(error.message, { status: 500 }));
-      }
+    const transcript = await client.intelligence.v2.transcripts.create({
+      channel: {
+        media_properties: {
+          media_url: mediaUrl,
+        },
+        participants: participants,
+      },
+      serviceSid: process.env.SERVICE_SID,
     });
-  });
+
+    return new NextResponse(JSON.stringify({ transcriptSid: transcript.sid }), { status: 200 });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    return new NextResponse(JSON.stringify({ error: error.message }), { status: 500 });
+  }
 }

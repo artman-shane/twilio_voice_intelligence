@@ -1,0 +1,50 @@
+{
+  "prompt": "Evaluate the call and determine if a return, replacement or repair are being asked for.",
+  "GenerativeJSON": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "call_id": {
+        "type": "string",
+        "description": "Unique identifier for the call or transcript."
+      },
+      "customer_name": {
+        "type": "string",
+        "description": "Name of the customer (individual or company) asking for the return, replacement or repair."
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Phone number of the customer (if provided)."
+      },
+      "email_address": {
+        "type": "string",
+        "description": "Email address of the customer (if provided)."
+      },
+      "customer_need": {
+        "type": "string",
+        "description": "What is the customer asking for? (e.g., return, replacement, repair)"
+      },
+      "timeline": {
+        "type": "string",
+        "description": "Timeline or urgency for getting a replacement or return, as expressed by the customer."
+      },
+      "next_steps": {
+        "type": "string",
+        "description": "Action or next steps agreed upon by the agent and prospect (e.g., call for time, deliver it tomorrow)."
+      },
+      "satisfaction": {
+        "type": "boolean",
+        "description": "Did the customer seem satisfied with the outcome of the call."
+      },
+      "agent_helpful": {
+        "type": "string",
+        "description": "Was the agent understanding and helpful in resolving the customer's issue?"
+      },
+      "agent_irritated": {
+        "type": "string",
+        "description": "Did the agent seem irritated or frustrated during the call?"
+      }
+    }
+  },
+  "examples": []
+}
