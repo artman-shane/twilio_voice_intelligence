@@ -1,19 +1,25 @@
 {
-  "name": "voiceintelligencetranscription",
+  "name": "voice-intelligence-transcription",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1",
-    "multer": "^1.4.5-lts.1",
-    "ngrok": "^5.0.0-beta.2",
-    "twilio": "^5.3.5"
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.3",
+    "@mui/material": "^6.4.3",
+    "autoprefixer": "^9.8.8",
+    "dotenv": "^10.0.0",
+    "formidable": "^3.5.2",
+    "next": "latest",
+    "postcss": "^7.0.39",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.2.17",
+    "twilio": "^5.4.3"
   }
 }
