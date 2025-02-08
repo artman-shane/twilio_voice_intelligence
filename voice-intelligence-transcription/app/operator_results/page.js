@@ -1,8 +1,16 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Container, Typography, Box, Paper, List, ListItem, ListItemText } from "@mui/material";
+import {
+  Container,
+  Typography,
+  Box,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+} from "@mui/material";
 
 export default function OperatorResults() {
   const [operatorResults, setOperatorResults] = useState(null);
@@ -38,15 +46,19 @@ export default function OperatorResults() {
     }
   }, [transcriptSid, router]);
 
-  const renderJsonResults = (jsonResults) => {
+  const renderJsonResults = (jsonResults, parentIndex) => {
     return (
-      <Paper elevation={3} style={{ padding: '16px', marginTop: '16px' }}>
+      <Paper
+        elevation={3}
+        style={{ padding: "16px", marginTop: "16px" }}
+        key={`json-results-${parentIndex}`}
+      >
         <Typography variant="h6" component="h2" gutterBottom>
-          JSON Results
+          Operator Results
         </Typography>
         <List>
-          {Object.entries(jsonResults).map(([key, value]) => (
-            <ListItem key={key}>
+          {Object.entries(jsonResults).map(([key, value], index) => (
+            <ListItem key={`${key}-${index}`}>
               <ListItemText primary={key} secondary={value} />
             </ListItem>
           ))}
@@ -66,9 +78,13 @@ export default function OperatorResults() {
         </Typography>
       ) : (
         <Box mt={4}>
-          {operatorResults && operatorResults.operator_results && operatorResults.operator_results.map((result) => (
-            result.json_results && renderJsonResults(result.json_results)
-          ))}
+          {operatorResults &&
+            operatorResults.operator_results &&
+            operatorResults.operator_results.map(
+              (result, index) =>
+                result.json_results &&
+                renderJsonResults(result.json_results, index)
+            )}
         </Box>
       )}
     </Container>
