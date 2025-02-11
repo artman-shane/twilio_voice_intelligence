@@ -20,6 +20,6 @@
     "react": "latest",
     "react-dom": "latest",
     "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.2.17",
-    "twilio": "^5.4.3"
+    "twilio": "latest"
   }
 }

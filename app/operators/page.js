@@ -37,11 +37,15 @@ const StyledTableHead = styled(TableHead)({
 
 export default function Operators() {
   const [operators, setOperators] = useState([]);
+  const [attachedOperators, setAttachedOperators] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
   const [loadingText, setLoadingText] = useState("Loading.");
   const [isLoading, setIsLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOperator, setSelectedOperator] = useState(null);
   const router = useRouter();
+  const [selectedAttachedOperator, setSelectedAttachedOperator] =
+    useState(null);
 
   const fetchOperators = async () => {
     try {
@@ -58,8 +62,27 @@ export default function Operators() {
     }
   };
 
+  const fetchAttachedOperators = async () => {
+    try {
+      const response = await fetch("/api/attached_operators");
+      if (!response.ok) {
+        throw new Error("Failed to fetch attached operators");
+      }
+      const data = await response.json();
+      console.log("Fetched attached operators:", data); // Debugging
+      setSelectedService(data.selectedService);
+      const filteredOperators = data.attachedOperators.filter(
+        (operator) => operator.author !== "twilio"
+      );
+      setAttachedOperators(filteredOperators);
+    } catch (error) {
+      console.error("Error fetching attached operators:", error);
+    }
+  };
+
   useEffect(() => {
     fetchOperators();
+    fetchAttachedOperators();
   }, []);
 
   useEffect(() => {
@@ -103,10 +126,45 @@ export default function Operators() {
     }
   };
 
+  const handleAttachedMenuOpen = (event, operator) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedAttachedOperator(operator);
+  };
+
+  const handleAttachedMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedAttachedOperator(null);
+  };
+
+  const handleAttachedDelete = async () => {
+    if (!selectedAttachedOperator) return;
+    console.log(
+      `Deleting attached operator: ${selectedAttachedOperator.sid} from service: ${selectedAttachedOperator.serviceSid}`
+    );
+    const response = await fetch(`/api/attached_operators`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sid: selectedAttachedOperator.sid,
+        serviceSid: selectedAttachedOperator.serviceSid,
+      }),
+    });
+
+    if (response.ok) {
+      await fetchAttachedOperators(); // Refresh the list of attached operators
+      handleAttachedMenuClose();
+    } else {
+      const errorText = await response.text();
+      alert(`Error deleting attached operator: ${errorText}`);
+    }
+  };
+
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="lg">
       <Typography variant="h4" component="h1" gutterBottom>
-        Operators
+        Custom Operators
       </Typography>
       {isLoading ? (
         <Typography variant="h6" color="textSecondary">
@@ -114,51 +172,156 @@ export default function Operators() {
         </Typography>
       ) : (
         <TableContainer component={Paper}>
-          <StyledTable>
-            <StyledTableHead>
+          <Table>
+            <TableHead>
               <TableRow>
-                <StyledTableCell>Description</StyledTableCell>
-                <StyledTableCell>Author</StyledTableCell>
-                <StyledTableCell>Availability</StyledTableCell>
-                <StyledTableCell>Version</StyledTableCell>
-                <StyledTableCell>Actions</StyledTableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Author</TableCell>
+                <TableCell>Availability</TableCell>
+                <TableCell>Version</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
-            </StyledTableHead>
+            </TableHead>
             <TableBody>
-              {operators.map((operator) => (
+              {operators.map(
+                (operator) =>
+                  operator &&
+                  operator.author !== "Twilio" && (
+                    <TableRow key={operator.sid}>
+                      <TableCell>{operator.description}</TableCell>
+                      <TableCell>{operator.author}</TableCell>
+                      <TableCell>{operator.availability}</TableCell>
+                      <TableCell>{operator.version}</TableCell>
+                      <TableCell>
+                        <IconButton
+                          aria-label="more"
+                          aria-controls="long-menu"
+                          aria-haspopup="true"
+                          onClick={(event) => handleMenuOpen(event, operator)}
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                        <Menu
+                          id="long-menu"
+                          anchorEl={anchorEl}
+                          keepMounted
+                          open={Boolean(anchorEl)}
+                          onClose={handleMenuClose}
+                        >
+                          <MenuItem onClick={handleDelete}>Delete</MenuItem>
+                        </Menu>
+                      </TableCell>
+                    </TableRow>
+                  )
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+      <Box mt={4}>
+        <Typography variant="h4" component="h2" gutterBottom>
+          Attached Operators
+        </Typography>
+        {selectedService && (
+          <Box mb={4}>
+            <Typography variant="h5">
+              Selected Service:{" "}
+              <span
+                style={{
+                  color: "blue",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+                onClick={() => router.push(`/config`)}
+              >
+                {selectedService.friendly_name}
+              </span>
+            </Typography>
+            <Typography variant="body1">SID: {selectedService.sid}</Typography>
+            <Typography variant="body1">
+              Unique Name: {selectedService.unique_name}
+            </Typography>
+            <Typography variant="body1">
+              Date Created:{" "}
+              {new Date(selectedService.date_created).toLocaleString()}
+            </Typography>
+            <Typography variant="body1">
+              Date Updated:{" "}
+              {new Date(selectedService.date_updated).toLocaleString()}
+            </Typography>
+          </Box>
+        )}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Friendly Name</TableCell>
+                <TableCell>SID</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Author</TableCell>
+                <TableCell>Operator Type</TableCell>
+                <TableCell>Version</TableCell>
+                <TableCell>Availability</TableCell>
+                <TableCell>Config</TableCell>
+                <TableCell>Date Created</TableCell>
+                <TableCell>Date Updated</TableCell>
+                <TableCell>URL</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {attachedOperators.map((operator) => (
                 <TableRow key={operator.sid}>
-                  <StyledTableCell>{operator.description}</StyledTableCell>
-                  <StyledTableCell>{operator.author}</StyledTableCell>
-                  <StyledTableCell>{operator.availability}</StyledTableCell>
-                  <StyledTableCell>{operator.version}</StyledTableCell>
-                  <StyledTableCell>
+                  <TableCell>{operator.friendlyName}</TableCell>
+                  <TableCell>{operator.sid}</TableCell>
+                  <TableCell>{operator.description}</TableCell>
+                  <TableCell>{operator.author}</TableCell>
+                  <TableCell>{operator.operatorType}</TableCell>
+                  <TableCell>{operator.version}</TableCell>
+                  <TableCell>{operator.availability}</TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      title={JSON.stringify(operator.config)}
+                    >
+                      Hover to view config
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(operator.dateCreated).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(operator.dateUpdated).toLocaleString()}
+                  </TableCell>
+                  <TableCell>{operator.url}</TableCell>
+                  <TableCell>
                     <IconButton
                       aria-label="more"
                       aria-controls="long-menu"
                       aria-haspopup="true"
-                      onClick={(event) => handleMenuOpen(event, operator)}
+                      onClick={(event) =>
+                        handleAttachedMenuOpen(event, operator)
+                      }
                     >
                       <MoreVertIcon />
                     </IconButton>
                     <Menu
-                      id="long-menu"
+                      id="attached-menu"
                       anchorEl={anchorEl}
                       keepMounted
                       open={Boolean(anchorEl)}
-                      onClose={handleMenuClose}
+                      onClose={handleAttachedMenuClose}
                     >
-                      {(selectedOperator &&
-                        selectedOperator.author !== "Twilio" && (
-                          <MenuItem onClick={handleDelete}>Delete</MenuItem>
-                        )) || <MenuItem>No Actions</MenuItem>}
+                      <MenuItem onClick={handleAttachedDelete}>Delete</MenuItem>
                     </Menu>
-                  </StyledTableCell>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </StyledTable>
+          </Table>
         </TableContainer>
-      )}
+      </Box>
     </Container>
   );
 }
