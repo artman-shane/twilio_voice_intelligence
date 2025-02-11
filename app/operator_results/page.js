@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Button,
   Container,
   Typography,
   Box,
@@ -28,7 +29,9 @@ export default function OperatorResults() {
         );
         const response = await fetch(`/api/operator_results/${transcriptSid}`);
         if (!response.ok) {
-          throw new Error("Failed to fetch operator results");
+          setIsLoading(false);
+          setOperatorResults({ error: "Failed to fetch operator results" });
+          return;
         }
         const data = await response.json();
         setOperatorResults(data);
@@ -72,19 +75,30 @@ export default function OperatorResults() {
       <Typography variant="h4" component="h1" gutterBottom>
         Operator Results
       </Typography>
+      <Box mt={2}>
+        <Button variant="contained" color="primary" onClick={() => router.back()}>
+          Back
+        </Button>
+      </Box>
       {isLoading ? (
         <Typography variant="h6" color="textSecondary">
           Loading...
         </Typography>
       ) : (
         <Box mt={4}>
-          {operatorResults &&
+          {operatorResults && operatorResults.error ? (
+            <Typography variant="h6" color="error">
+              {operatorResults.error}
+            </Typography>
+          ) : (
+            operatorResults &&
             operatorResults.operator_results &&
             operatorResults.operator_results.map(
               (result, index) =>
                 result.json_results &&
                 renderJsonResults(result.json_results, index)
-            )}
+            )
+          )}
         </Box>
       )}
     </Container>

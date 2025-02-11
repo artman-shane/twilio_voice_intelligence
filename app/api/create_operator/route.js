@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 
-export async function GET(req, context) {
+export async function POST(req) {
   try {
-    const { params } = context;
-    const { sid } = await params; // Extract the SID from the dynamic route
-    console.log("Fetching operator results for transcript SID:", sid);
-
-    if (!sid) {
-      throw new Error("SID parameter is missing");
-    }
-
     // Fetch Twilio credentials from the /api/config endpoint
     const configResponse = await fetch(
       `http://${req.headers.get("host")}/api/config`
@@ -20,33 +12,44 @@ export async function GET(req, context) {
     }
     const config = await configResponse.json();
     const TWILIO_ACCOUNT_SID = config.accountSid;
-    const TWILIO_AUTH_TOKEN = config.authToken; // Use the actual token from the environment
+    const TWILIO_AUTH_TOKEN = config.authToken;
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
       return new Response("Twilio credentials are not set", { status: 500 });
     }
 
-    const url = `https://intelligence.twilio.com/v2/Transcripts/${sid}/OperatorResults?Redacted=false`;
+    console.log("Creating operator req:", req);
+
+    // Get the operator data from the request body
+    const formData = await req.formData();
+    const operatorData = {};
+    formData.forEach((value, key) => {
+      operatorData[key] = value;
+    });
+    console.log("Operator data:", operatorData);
+
+    const url = `https://intelligence.twilio.com/v2/Operators/Custom`;
     const auth = Buffer.from(
       `${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`
     ).toString("base64");
 
     const response = await fetch(url, {
+      method: "POST",
       headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Basic ${auth}`,
       },
+      body: new URLSearchParams(operatorData).toString(),
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch operator results: ${response.statusText}`
-      );
+      throw new Error(`Failed to create operator: ${response.statusText}`);
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching operator results:", error);
+    console.error("Error creating operator:", error);
     return new Response(error.message, { status: 500 });
   }
 }

@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const config = {
       accountSid: process.env.ACCOUNT_SID || "",
-      authToken: process.env.AUTH_TOKEN ? "********" : "",
+      authToken: process.env.AUTH_TOKEN || "",
       serviceSid: process.env.SERVICE_SID || "",
     };
     return new Response(JSON.stringify(config), { status: 200 });

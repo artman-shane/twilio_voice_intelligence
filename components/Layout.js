@@ -1,6 +1,6 @@
-import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
-import Link from 'next/link';
+import React from "react";
+import { AppBar, Toolbar, Typography, Button, Container } from "@mui/material";
+import Link from "next/link";
 
 const Layout = ({ children }) => {
   return (
@@ -19,11 +19,15 @@ const Layout = ({ children }) => {
           <Button color="inherit" component={Link} href="/config">
             Configuration
           </Button>
+          <Button color="inherit" component={Link} href="/operators">
+            Operators
+          </Button>
+          <Button color="inherit" component={Link} href="/create_operator">
+            Create Operator
+          </Button>
         </Toolbar>
       </AppBar>
-      <Container style={{ marginTop: 24 }}>
-        {children}
-      </Container>
+      <Container style={{ marginTop: 24 }}>{children}</Container>
     </div>
   );
 };

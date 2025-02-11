@@ -94,7 +94,7 @@ export default function UploadMedia() {
           {participants.map((participant, index) => (
             <Box key={index} mb={2}>
               <Typography variant="h6" component="h3" gutterBottom>
-                {participant.role}
+                Channel Participant {participant.channel_participant}
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
@@ -164,6 +164,18 @@ export default function UploadMedia() {
                         "image_url",
                         e.target.value
                       )
+                    }
+                    variant="outlined"
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Role"
+                    value={participant.role}
+                    onChange={(e) =>
+                      handleParticipantChange(index, "role", e.target.value)
                     }
                     variant="outlined"
                     margin="normal"
