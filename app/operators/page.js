@@ -197,6 +197,7 @@ export default function Operators() {
 
     if (response.ok) {
       await fetchAttachedOperators(); // Refresh the list of attached operators
+      handleUnattachedMenuClose();
     } else {
       const errorText = await response.text();
       alert(`Error attaching operator: ${errorText}`);
