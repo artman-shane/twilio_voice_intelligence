@@ -43,9 +43,13 @@ export default function Operators() {
   const [isLoading, setIsLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOperator, setSelectedOperator] = useState(null);
-  const router = useRouter();
+  const [anchorElAttached, setAnchorElAttached] = useState(null);
   const [selectedAttachedOperator, setSelectedAttachedOperator] =
     useState(null);
+  const [anchorElUnattached, setAnchorElUnattached] = useState(null);
+  const [selectedUnattachedOperator, setSelectedUnattachedOperator] =
+    useState(null);
+  const router = useRouter();
 
   const fetchOperators = async () => {
     try {
@@ -107,6 +111,27 @@ export default function Operators() {
     setSelectedOperator(null);
   };
 
+  const handleAttachedMenuOpen = (event, operator) => {
+    setAnchorElAttached(event.currentTarget);
+    setSelectedAttachedOperator(operator);
+  };
+
+  const handleAttachedMenuClose = () => {
+    setAnchorElAttached(null);
+    setSelectedAttachedOperator(null);
+  };
+
+  const handleUnattachedMenuOpen = (event, operator) => {
+    console.log("Menu Clicked - Unattached operator:", operator);
+    setAnchorElUnattached(event.currentTarget);
+    setSelectedUnattachedOperator(operator);
+  };
+
+  const handleUnattachedMenuClose = () => {
+    setAnchorElUnattached(null);
+    setSelectedUnattachedOperator(null);
+  };
+
   const handleDelete = async () => {
     if (!selectedOperator) return;
     const response = await fetch(`/api/operators`, {
@@ -124,16 +149,6 @@ export default function Operators() {
       const errorText = await response.text();
       alert(`Error deleting operator: ${errorText}`);
     }
-  };
-
-  const handleAttachedMenuOpen = (event, operator) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedAttachedOperator(operator);
-  };
-
-  const handleAttachedMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedAttachedOperator(null);
   };
 
   const handleAttachedDelete = async () => {
@@ -161,6 +176,41 @@ export default function Operators() {
     }
   };
 
+  const handleAttach = async (operator) => {
+    if (!selectedService) {
+      alert("No service selected");
+      return;
+    }
+
+    console.log("Operator selected to attach:", operator);
+
+    const response = await fetch(`/api/attach_operators`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sid: operator.sid,
+        serviceSid: selectedService.sid,
+      }),
+    });
+
+    if (response.ok) {
+      await fetchAttachedOperators(); // Refresh the list of attached operators
+    } else {
+      const errorText = await response.text();
+      alert(`Error attaching operator: ${errorText}`);
+    }
+  };
+
+  // Filter operators to exclude attached operators
+  const unattachedOperators = operators.filter(
+    (operator) =>
+      !attachedOperators.some(
+        (attachedOperator) => attachedOperator.sid === operator.sid
+      )
+  );
+
   return (
     <Container maxWidth="lg">
       <Typography variant="h4" component="h1" gutterBottom>
@@ -178,7 +228,6 @@ export default function Operators() {
                 <TableCell>Description</TableCell>
                 <TableCell>Author</TableCell>
                 <TableCell>Availability</TableCell>
-                <TableCell>Version</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -191,18 +240,17 @@ export default function Operators() {
                       <TableCell>{operator.description}</TableCell>
                       <TableCell>{operator.author}</TableCell>
                       <TableCell>{operator.availability}</TableCell>
-                      <TableCell>{operator.version}</TableCell>
                       <TableCell>
                         <IconButton
                           aria-label="more"
-                          aria-controls="long-menu"
+                          aria-controls={`menu-${operator.sid}`}
                           aria-haspopup="true"
                           onClick={(event) => handleMenuOpen(event, operator)}
                         >
                           <MoreVertIcon />
                         </IconButton>
                         <Menu
-                          id="long-menu"
+                          id={`menu-${operator.sid}`}
                           anchorEl={anchorEl}
                           keepMounted
                           open={Boolean(anchorEl)}
@@ -255,29 +303,22 @@ export default function Operators() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Friendly Name</TableCell>
-                <TableCell>SID</TableCell>
                 <TableCell>Description</TableCell>
+                <TableCell>Friendly Name</TableCell>
                 <TableCell>Author</TableCell>
                 <TableCell>Operator Type</TableCell>
-                <TableCell>Version</TableCell>
                 <TableCell>Availability</TableCell>
                 <TableCell>Config</TableCell>
-                <TableCell>Date Created</TableCell>
-                <TableCell>Date Updated</TableCell>
-                <TableCell>URL</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {attachedOperators.map((operator) => (
                 <TableRow key={operator.sid}>
-                  <TableCell>{operator.friendlyName}</TableCell>
-                  <TableCell>{operator.sid}</TableCell>
                   <TableCell>{operator.description}</TableCell>
+                  <TableCell>{operator.friendlyName}</TableCell>
                   <TableCell>{operator.author}</TableCell>
                   <TableCell>{operator.operatorType}</TableCell>
-                  <TableCell>{operator.version}</TableCell>
                   <TableCell>{operator.availability}</TableCell>
                   <TableCell>
                     <Typography
@@ -289,16 +330,9 @@ export default function Operators() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    {new Date(operator.dateCreated).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(operator.dateUpdated).toLocaleString()}
-                  </TableCell>
-                  <TableCell>{operator.url}</TableCell>
-                  <TableCell>
                     <IconButton
                       aria-label="more"
-                      aria-controls="long-menu"
+                      aria-controls={`attached-menu-${operator.sid}`}
                       aria-haspopup="true"
                       onClick={(event) =>
                         handleAttachedMenuOpen(event, operator)
@@ -307,13 +341,64 @@ export default function Operators() {
                       <MoreVertIcon />
                     </IconButton>
                     <Menu
-                      id="attached-menu"
-                      anchorEl={anchorEl}
+                      id={`attached-menu-${operator.sid}`}
+                      anchorEl={anchorElAttached}
                       keepMounted
-                      open={Boolean(anchorEl)}
+                      open={Boolean(anchorElAttached)}
                       onClose={handleAttachedMenuClose}
                     >
                       <MenuItem onClick={handleAttachedDelete}>Delete</MenuItem>
+                    </Menu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+      <Box mt={4}>
+        <Typography variant="h4" component="h2" gutterBottom>
+          Unattached Operators
+        </Typography>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Description</TableCell>
+                <TableCell>Author</TableCell>
+                <TableCell>Availability</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {unattachedOperators.map((operator) => (
+                <TableRow key={operator.sid}>
+                  <TableCell>{operator.description}</TableCell>
+                  <TableCell>{operator.author}</TableCell>
+                  <TableCell>{operator.availability}</TableCell>
+                  <TableCell>
+                    <IconButton
+                      aria-label="more"
+                      aria-controls={`unattached-menu-${operator.sid}`}
+                      aria-haspopup="true"
+                      onClick={(event) =>
+                        handleUnattachedMenuOpen(event, operator)
+                      }
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
+                    <Menu
+                      id={`unattached-menu-${operator.sid}`}
+                      anchorEl={anchorElUnattached}
+                      keepMounted
+                      open={Boolean(anchorElUnattached)}
+                      onClose={handleUnattachedMenuClose}
+                    >
+                      <MenuItem
+                        onClick={() => handleAttach(selectedUnattachedOperator)}
+                      >
+                        Attach to Selected Service
+                      </MenuItem>
                     </Menu>
                   </TableCell>
                 </TableRow>
