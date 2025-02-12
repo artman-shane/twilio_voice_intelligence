@@ -10,6 +10,10 @@ import {
   Box,
   Grid,
   Paper,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 
 const defaultParticipants = [
@@ -27,7 +31,7 @@ const defaultParticipants = [
     image_url: "https://shane.ngrok.io/uploads/agent.png",
     full_name: "Marvin",
     role: "Agent",
-    email: "agent@ashleyfurniture.com",
+    email: "agent@bigco.com",
     user_id: "Agent-12345",
     media_participant_id: "Media-12345",
   },
@@ -170,16 +174,19 @@ export default function UploadMedia() {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Role"
-                    value={participant.role}
-                    onChange={(e) =>
-                      handleParticipantChange(index, "role", e.target.value)
-                    }
-                    variant="outlined"
-                    margin="normal"
-                  />
+                  <FormControl fullWidth variant="outlined" margin="normal">
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={participant.role}
+                      onChange={(e) =>
+                        handleParticipantChange(index, "role", e.target.value)
+                      }
+                      label="Role"
+                    >
+                      <MenuItem value="Customer">Customer</MenuItem>
+                      <MenuItem value="Agent">Agent</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
               </Grid>
             </Box>

@@ -43,6 +43,7 @@ export async function POST(req) {
     });
 
     if (!response.ok) {
+      console.log("Failed Operator response:", response);
       throw new Error(`Failed to create operator: ${response.statusText}`);
     }
 
