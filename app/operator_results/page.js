@@ -36,6 +36,7 @@ export default function OperatorResults() {
         const data = await response.json();
         setOperatorResults(data);
         setIsLoading(false);
+        console.log("Operator results:", data);
       } catch (error) {
         console.error("Error fetching operator results:", error);
         setIsLoading(false);
@@ -57,17 +58,141 @@ export default function OperatorResults() {
         key={`json-results-${parentIndex}`}
       >
         <Typography variant="h6" component="h2" gutterBottom>
-          Operator Results
+          JSON Results
         </Typography>
         <List>
           {Object.entries(jsonResults).map(([key, value], index) => (
             <ListItem key={`${key}-${index}`}>
-              <ListItemText primary={key} secondary={value} />
+              <ListItemText
+                primary={key}
+                secondary={
+                  typeof value === "object"
+                    ? JSON.stringify(value)
+                    : String(value)
+                }
+              />
             </ListItem>
           ))}
         </List>
       </Paper>
     );
+  };
+
+  const renderTextGenerationResults = (textGenerationResults, parentIndex) => {
+    return (
+      <Paper
+        elevation={3}
+        style={{ padding: "16px", marginTop: "16px" }}
+        key={`text-generation-results-${parentIndex}`}
+      >
+        <Typography variant="h6" component="h2" gutterBottom>
+          Text Generation Results
+        </Typography>
+        {textGenerationResults.format === "text" && (
+          <Typography variant="body1">
+            {textGenerationResults.result}
+          </Typography>
+        )}
+      </Paper>
+    );
+  };
+
+  const renderExtractResults = (extractResults, parentIndex) => {
+    return (
+      <Paper
+        elevation={3}
+        style={{ padding: "16px", marginTop: "16px" }}
+        key={`extract-results-${parentIndex}`}
+      >
+        <Typography variant="h6" component="h2" gutterBottom>
+          Extract Results
+        </Typography>
+        <List>
+          {Object.entries(extractResults).map(([key, value], index) => (
+            <ListItem key={`${key}-${index}`}>
+              <ListItemText
+                primary={key}
+                secondary={
+                  typeof value === "object"
+                    ? JSON.stringify(value)
+                    : String(value)
+                }
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Paper>
+    );
+  };
+
+  const renderExtractMatch = (extractMatch, parentIndex) => {
+    return (
+      <Paper
+        elevation={3}
+        style={{ padding: "16px", marginTop: "16px" }}
+        key={`extract-match-${parentIndex}`}
+      >
+        <Typography variant="h6" component="h2" gutterBottom>
+          Extract Match
+        </Typography>
+        <Typography variant="body1">{String(extractMatch)}</Typography>
+      </Paper>
+    );
+  };
+
+  const renderConversationClassifyResults = (
+    predictedLabel,
+    predictedProbability,
+    parentIndex
+  ) => {
+    return (
+      <Paper
+        elevation={3}
+        style={{ padding: "16px", marginTop: "16px" }}
+        key={`conversation-classify-results-${parentIndex}`}
+      >
+        <Typography variant="h6" component="h2" gutterBottom>
+          Conversation Classify Results
+        </Typography>
+        <Typography variant="body1">
+          Predicted Label: {predictedLabel}
+        </Typography>
+        <Typography variant="body1">
+          Predicted Probability: {predictedProbability}
+        </Typography>
+      </Paper>
+    );
+  };
+
+  const renderOperatorResults = (results) => {
+    return results.map((result, index) => (
+      <Box key={`operator-result-${index}`} mt={4}>
+        <Typography variant="h5" component="h3" gutterBottom>
+          {result.name}
+        </Typography>
+        {result.operator_type === "json" &&
+          result.json_results &&
+          renderJsonResults(result.json_results, index)}
+        {result.operator_type === "text-generation" &&
+          result.text_generation_results &&
+          renderTextGenerationResults(result.text_generation_results, index)}
+        {result.operator_type === "extract" &&
+          result.extract_match != null &&
+          renderExtractMatch(result.extract_match, index)}
+        {result.operator_type === "extract" &&
+          result.extract_results &&
+          Object.keys(result.extract_results).length > 0 &&
+          renderExtractResults(result.extract_results, index)}
+        {result.operator_type === "conversation-classify" &&
+          result.predicted_label &&
+          result.predicted_probability != null &&
+          renderConversationClassifyResults(
+            result.predicted_label,
+            result.predicted_probability,
+            index
+          )}
+      </Box>
+    ));
   };
 
   return (
@@ -76,7 +201,11 @@ export default function OperatorResults() {
         Operator Results
       </Typography>
       <Box mt={2}>
-        <Button variant="contained" color="primary" onClick={() => router.back()}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => router.back()}
+        >
           Back
         </Button>
       </Box>
@@ -93,11 +222,7 @@ export default function OperatorResults() {
           ) : (
             operatorResults &&
             operatorResults.operator_results &&
-            operatorResults.operator_results.map(
-              (result, index) =>
-                result.json_results &&
-                renderJsonResults(result.json_results, index)
-            )
+            renderOperatorResults(operatorResults.operator_results)
           )}
         </Box>
       )}
