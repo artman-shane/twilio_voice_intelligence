@@ -170,7 +170,7 @@ export default function Home() {
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="xl">
       <Typography variant="h4" component="h1" gutterBottom>
         Uploaded Files
       </Typography>

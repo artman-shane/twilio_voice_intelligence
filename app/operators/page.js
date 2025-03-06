@@ -58,7 +58,7 @@ export default function Operators() {
         throw new Error("Failed to fetch operators");
       }
       const data = await response.json();
-      console.log("Fetched operators:", data); // Debugging
+      // console.log("Fetched operators:", data); // Debugging
       setOperators(data);
       setIsLoading(false);
     } catch (error) {
@@ -73,7 +73,7 @@ export default function Operators() {
         throw new Error("Failed to fetch attached operators");
       }
       const data = await response.json();
-      console.log("Fetched attached operators:", data); // Debugging
+      // console.log("Fetched attached operators:", data); // Debugging
       setSelectedService(data.selectedService);
       const filteredOperators = data.attachedOperators.filter(
         (operator) => operator.author !== "twilio"
@@ -212,8 +212,39 @@ export default function Operators() {
       )
   );
 
+  const handleConfigCopy = (config) => {
+    // console.log("Handle Copy: ", config);
+    const textToCopy = JSON.stringify(config);
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy).then(
+        () => {
+          alert("Config copied to clipboard");
+        },
+        (err) => {
+          console.error("Could not copy text: ", err);
+        }
+      );
+    } else {
+      // Fallback method
+      const textarea = document.createElement("textarea");
+      textarea.value = textToCopy;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        alert("Config copied to clipboard");
+      } catch (err) {
+        console.error("Could not copy text: ", err);
+        alert("Could not copy text");
+      }
+      document.body.removeChild(textarea);
+    }
+  };
+
   return (
     <Container maxWidth="lg">
+      ``
       <Typography variant="h4" component="h1" gutterBottom>
         Custom Operators
       </Typography>
@@ -326,8 +357,10 @@ export default function Operators() {
                       variant="body2"
                       color="textSecondary"
                       title={JSON.stringify(operator.config)}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleConfigCopy(operator.config)}
                     >
-                      Hover to view config
+                      Copy
                     </Typography>
                   </TableCell>
                   <TableCell>
